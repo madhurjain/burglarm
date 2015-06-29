@@ -3,6 +3,10 @@ Burglarm
 
 Burglar Alarm using RaspberryPi + Go
 
+##### Schematic
+
+![Burglarm Schematic](schematic.png)
+
 I know Raspberry Pi is an overkill for this project but I've been wanting to build a simple burglar alarm since long and also wanting to try Go on Raspberry Pi.
 
 #### Installing Go on RaspberryPi
