@@ -11,23 +11,21 @@ import (
 )
 
 const (
-	// Triggered State
+	// Burglarm States
 	TRIGGERED = iota
 	ARMED
 	DISARMED
 )
 
-type burglarm struct {
+type Burglarm struct {
 	buzzerPin rpio.Pin // PIN 15, GPIO 22
 	pirPin    rpio.Pin // PIN 16, GPIO 23
+	state     uint8
 	action    chan uint8
 	stop      chan bool
 }
 
-func (b *burglarm) pollPir() {
-	b.buzzerPin.High()
-	time.Sleep(time.Second)
-	b.buzzerPin.Low()
+func (b *Burglarm) pollPir() {
 	// Keep reading PIR pin for trigger
 	for {
 		if b.pirPin.Read() == rpio.High {
@@ -37,21 +35,30 @@ func (b *burglarm) pollPir() {
 	}
 }
 
-func (b *burglarm) start() {
+func (b *Burglarm) beep() {
+	b.buzzerPin.High()
+	time.Sleep(time.Millisecond * 500)
+	b.buzzerPin.Low()
+}
+
+func (b *Burglarm) start() {
 	for {
 		select {
 		case action := <-b.action:
 			switch action {
 			case ARMED:
+				log.Println("Armed")
 				// Start monitoring after 5 seconds the device is turned on
 				time.AfterFunc(5*time.Second, func() { b.pollPir() })
 			case DISARMED:
+				log.Println("Disarmed")
 				b.buzzerPin.Low()
 			case TRIGGERED:
+				log.Println("Triggered")
 				// Set alarm pin high
 				b.buzzerPin.High()
 			}
-
+			b.state = action
 		case <-b.stop:
 			b.buzzerPin.Low()
 			log.Println("stopping service")
@@ -61,16 +68,29 @@ func (b *burglarm) start() {
 	}
 }
 
-func (b *burglarm) terminate() {
+func (b *Burglarm) terminate() {
 	b.stop <- true
 	<-b.stop // block until previous stop is processed
 }
 
-func irevent(event lirc.Event) {
-	log.Println("remote event")
-	// Disarm on key press of remote
-	// Rearm on key press of remote
-	log.Println(event)
+func (b *Burglarm) remoteKey(event lirc.Event) {
+
+	// Long key press triggers event twice
+	// Ignore long key presses
+	if event.Repeat > 0 {
+		return
+	}
+	log.Println(event.Button)
+	b.beep()
+	if b.state == DISARMED {
+		// Rearm on key press of remote
+		log.Println("ARM")
+		b.action <- ARMED
+	} else {
+		// Disarm on key press of remote
+		log.Println("DISARM")
+		b.action <- DISARMED
+	}
 }
 
 func main() {
@@ -82,24 +102,24 @@ func main() {
 	}
 	defer rpio.Close()
 
-	b := &burglarm{
+	burglarm := &Burglarm{
 		action: make(chan uint8),
 		stop:   make(chan bool),
 	}
 	// Init GPIO Pins
-	b.buzzerPin = rpio.Pin(22)
-	b.buzzerPin.Mode(rpio.Output)
+	burglarm.buzzerPin = rpio.Pin(22)
+	burglarm.buzzerPin.Mode(rpio.Output)
 
-	b.pirPin = rpio.Pin(23)
-	b.pirPin.Mode(rpio.Input)
+	burglarm.pirPin = rpio.Pin(23)
+	burglarm.pirPin.Mode(rpio.Input)
 
 	// Init IR
-	ir, err := lirc.Init("")
+	ir, err := lirc.Init("/var/run/lirc/lircd")
 	if err != nil {
 		log.Println("LIRC Error", err)
 	}
-	ir.Handle("", "", irevent)
-	ir.Run()
+	ir.Handle("", "KEY_POWER", burglarm.remoteKey)
+	go ir.Run()
 
 	// Start Service
 	log.Println("Starting Service")
