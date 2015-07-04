@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/madhurjain/lirc"
+	"github.com/chbmuc/lirc"
 	"github.com/stianeikeland/go-rpio"
 	"log"
 	"os"
@@ -66,9 +66,11 @@ func (b *burglarm) terminate() {
 	<-b.stop // block until previous stop is processed
 }
 
-func irevent(ev lirc.LircEvent) {
+func irevent(event lirc.Event) {
 	log.Println("remote event")
-	log.Println(ev)
+	// Disarm on key press of remote
+	// Rearm on key press of remote
+	log.Println(event)
 }
 
 func main() {
@@ -97,7 +99,7 @@ func main() {
 		log.Println("LIRC Error", err)
 	}
 	ir.Handle("", "", irevent)
-	//ir.Run()
+	ir.Run()
 
 	// Start Service
 	log.Println("Starting Service")
@@ -111,8 +113,5 @@ func main() {
 	log.Println(<-ch) // blocks main
 
 	burglarm.terminate()
-
-	// Disarm on key press of remote
-	// Rearm on key press of remote
 
 }
