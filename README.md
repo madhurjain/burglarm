@@ -5,8 +5,9 @@ Burglar Alarm using RaspberryPi + Go
 
 ##### Schematic
 
-![Burglarm Schematic](schematic.png)
-![Burglarm with RaspberryPi](board.jpg)
+Schematic                             |  Shield on Perfboard with Raspberry Pi
+:------------------------------------:|:----------------------------------------:
+![Burglarm Schematic](schematic.png)  |  ![Burglarm with RaspberryPi](board.jpg)
 
 I know Raspberry Pi is an overkill for this project but I've been wanting to build a simple burglar alarm since long and also wanting to try Go on Raspberry Pi.
 
@@ -27,7 +28,7 @@ vim ~/.profile
 export PATH=$PATH:/usr/local/go/bin
 ```
 
-#### Configuring LIRC [1]
+#### Configuring LIRC [[1]]
 
 ```sh
 # Stop LIRC daemon
